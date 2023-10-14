@@ -38,25 +38,68 @@ AMeshPlayerCharacter::AMeshPlayerCharacter()
 	directionalInput = EDirectionalInput::DEFAULT;
 
 	secondsPerTick = 0.01666666666;
+	
+	TArray<FInputTuple> facingLeft;
+	TArray<FInputTuple> facingRight;
 
-	TArray<FInputTuple> commandInputs = { FInputTuple{"Down", "*"}, FInputTuple{"DownRight", "*"}, FInputTuple{"Right", "*"} };
+	commands.SetNum(4);
 
-	tempCommand = FCommand();
-	tempCommand.name = "HADOUKEN";
-	tempCommand.motionComponent = commandInputs;
-	tempCommand.buttonComponent = FInputTuple{ "*", "A1" };
-	tempCommand.hasBeenUsed = false;
+	commands[0].name = "HADOUKEN";
+	facingLeft.Add(FInputTuple{ "Down", "*" });
+	facingLeft.Add(FInputTuple{ "DownLeft", "*" });
+	facingLeft.Add(FInputTuple{ "Left", "*" });
+	facingLeft.Add(FInputTuple{ "*", "A1" });
+	//commands[0].facingLeft.Add(FInputTuple{ "Down", "*" });
+	//commands[0].facingLeft.Add(FInputTuple{ "DownLeft", "*" });
+	//commands[0].facingLeft.Add(FInputTuple{ "Left", "*" });
+	//commands[0].facingLeft.Add(FInputTuple{ "*", "A1" });
+	commands[0].facingLeft = facingLeft;
+	UE_LOG(LogTemp, Warning, TEXT("Left: %d"), commands[0].facingLeft.Num());
+	
 
-	commands.SetNum(2);
+	commands[0].facingRight.Add(FInputTuple{ "Down", "*" });
+	commands[0].facingRight.Add(FInputTuple{ "DownRight", "*" });
+	commands[0].facingRight.Add(FInputTuple{ "Right", "*" });
+	commands[0].facingRight.Add(FInputTuple{ "*", "A1" });
+	commands[0].hasBeenUsed = false;
 
-	commands[0] = tempCommand;
 
 	commands[1].name = "SHORYUKEN";
-	commands[1].motionComponent.Add(FInputTuple{ "Right", "" });
-	commands[1].motionComponent.Add(FInputTuple{ "Down", "" });
-	commands[1].motionComponent.Add(FInputTuple{ "DownRight", "*" });
-	commands[1].buttonComponent = FInputTuple{ "*", "A1" };
+	commands[1].facingLeft.Add(FInputTuple{ "Left", "" });
+	commands[1].facingLeft.Add(FInputTuple{ "*", "*" });
+	commands[1].facingLeft.Add(FInputTuple{ "Down", "" });
+	commands[1].facingLeft.Add(FInputTuple{ "DownLeft", "" });
+	commands[1].facingLeft.Add(FInputTuple{ "*", "A1" });
+
+	commands[1].facingRight.Add(FInputTuple{"Right", ""});
+	commands[1].facingRight.Add(FInputTuple{ "*", "*" });
+	commands[1].facingRight.Add(FInputTuple{ "Down", "" });
+	commands[1].facingRight.Add(FInputTuple{ "DownRight", "" });
+	commands[1].facingRight.Add(FInputTuple{ "*", "A1" });
 	commands[1].hasBeenUsed = false;
+
+
+	commands[2].name = "DASH_BACKWARD";
+	commands[2].facingLeft.Add(FInputTuple{ "Right", "*" });
+	commands[2].facingLeft.Add(FInputTuple{ "N", "*" });
+	commands[2].facingLeft.Add(FInputTuple{ "Right", "*" });
+
+	commands[2].facingRight.Add(FInputTuple{ "Left", "*" });
+	commands[2].facingRight.Add(FInputTuple{ "N", "*" });
+	commands[2].facingRight.Add(FInputTuple{ "Left", "*" });
+	commands[2].hasBeenUsed = false;
+
+
+	commands[3].name = "DASH_FORWARD";
+
+	commands[3].facingLeft.Add(FInputTuple{ "Left", "*" });
+	commands[3].facingLeft.Add(FInputTuple{ "N", "*" });
+	commands[3].facingLeft.Add(FInputTuple{ "Left", "*" });
+
+	commands[3].facingRight.Add(FInputTuple{ "Right", "*" });
+	commands[3].facingRight.Add(FInputTuple{ "N", "*" });
+	commands[3].facingRight.Add(FInputTuple{ "Right", "*" });
+	commands[3].hasBeenUsed = false;
 
 }
 
@@ -199,106 +242,87 @@ void AMeshPlayerCharacter::AddInputToBuffer(FInputInfo input)
 
 void AMeshPlayerCharacter::CheckInputBufferForCommand()
 {
-	int correctSequenceCounter = 0;
-	FInputTuple previousInput = FInputTuple{};
-	FInputTuple noButton = FInputTuple{ "*", "" };
-	bool motionCompleted = false;
+	try {
 
-	for (int commandIndex = 0; commandIndex < commands.Num(); commandIndex++)
-	{
-		for (int commandInput = 0; commandInput < commands[commandIndex].motionComponent.Num(); commandInput++)
+		int correctSequenceCounter = 0;
+		FInputTuple previousInput = FInputTuple{};
+		TArray<FInputTuple> currentCommand;
+		float forwardVector = GetActorForwardVector().X;
+
+		for (int commandIndex = 0; commandIndex < commands.Num(); commandIndex++)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("Commands Size: %d"), commands.Num());
+			if (commands[commandIndex].hasBeenUsed)
+			{
+				continue;
+			}
+			UE_LOG(LogTemp, Warning, TEXT("Index: %d"), commandIndex);
+			UE_LOG(LogTemp, Warning, TEXT("Left: %d"), commands[commandIndex].facingLeft.Num());
+			UE_LOG(LogTemp, Warning, TEXT("Right: %d"), commands[commandIndex].facingRight.Num());
+
+			currentCommand = commands[commandIndex].facingLeft;
+
+			if (forwardVector > 0)
+			{
+				currentCommand = commands[commandIndex].facingRight;
+			}
+
+			//UE_LOG(LogTemp, Warning, TEXT("%s"), *currentCommand.name)
 			for (int input = 0; input < inputBuffer.Num(); input++)
 			{
-				if (input + correctSequenceCounter < inputBuffer.Num())
+				inputBuffer[input].wasEvaluated = false;
+			}
+			UE_LOG(LogTemp, Warning, TEXT("hmm"));
+
+			correctSequenceCounter = 0;
+			previousInput = FInputTuple{ "Not", "Not" };
+			return;
+
+			for (int input = 0; input < inputBuffer.Num(); input++)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("%d"), currentCommand.Num());
+				return;
+				if (!inputBuffer[input].wasEvaluated && inputBuffer[input].input == previousInput)
 				{
-					if (motionCompleted)
-					{
-						if (inputBuffer[input + correctSequenceCounter].input == commands[commandIndex].buttonComponent)
-						{
-							StartCommand(commands[commandIndex].name);
-							commands[commandIndex].hasBeenUsed = true;
-							return;
-						}
-						else if (inputBuffer[input + correctSequenceCounter].input == noButton)
-						{
-							continue;
-						}
-						else
-						{
-							motionCompleted = false;
-							correctSequenceCounter = 0;
-							previousInput = FInputTuple{};
-						}
-					}
-					else if (inputBuffer[input + correctSequenceCounter].input == commands[commandIndex].motionComponent[commandInput])
-					{
-						previousInput = inputBuffer[input + correctSequenceCounter].input;
+					inputBuffer[input].wasEvaluated = true;
+					continue;
+				}
+				else if (!inputBuffer[input].wasEvaluated && inputBuffer[input].input == currentCommand[correctSequenceCounter])
+				{
+					previousInput = inputBuffer[input].input;
 
-						//UE_LOG(LogTemp, Warning, TEXT("yujhhhhh"));
-						correctSequenceCounter += 1;
+					//UE_LOG(LogTemp, Warning, TEXT("%s"), *(previousInput.toString() + " " + commands[commandIndex].name));
+					inputBuffer[input].wasEvaluated = true;
+					correctSequenceCounter += 1;
 
-						if (correctSequenceCounter == commands[commandIndex].motionComponent.Num())
-						{
-							UE_LOG(LogTemp, Warning, TEXT("hmmmm"));
-							motionCompleted = true;
-							//StartCommand(tempCommand.name);
-						}
-
-						// Check to see if the last part of the motion also contains the button.
-						if (motionCompleted)
-						{
-							if (inputBuffer[input + correctSequenceCounter - 1].input == commands[commandIndex].buttonComponent)
-							{
-								StartCommand(commands[commandIndex].name);
-								commands[commandIndex].hasBeenUsed = true;
-								return;
-							}
-							else if (inputBuffer[input + correctSequenceCounter - 1].input == noButton)
-							{
-								continue;
-							}
-							else
-							{
-								motionCompleted = false;
-								correctSequenceCounter = 0;
-								previousInput = FInputTuple{};
-								continue;
-							}
-						}
-
-						break;
-					}
-					else if (inputBuffer[input + correctSequenceCounter].input == previousInput)
+					if (correctSequenceCounter == currentCommand.Num())
 					{
-						continue;
-					}
-					else
-					{
-						//UE_LOG(LogTemp, Warning, TEXT("naaahhh"));
-						motionCompleted = false;
+						StartCommand(commands[commandIndex].name);
+						commands[commandIndex].hasBeenUsed = true;
 						correctSequenceCounter = 0;
-						previousInput = FInputTuple{};
+						return;
 					}
 				}
 				else
 				{
-					//UE_LOG(LogTemp, Warning, TEXT("not yet"));
-					motionCompleted = false;
+
+					//UE_LOG(LogTemp, Warning, TEXT("naaahhh"));
 					correctSequenceCounter = 0;
-					previousInput = FInputTuple{};
+					previousInput = FInputTuple{ "Not", "Not" };
+					inputBuffer[input].wasEvaluated = true;
 				}
 			}
 		}
+	}
+	catch (...)
+	{
+		
 	}
 }
 
 void AMeshPlayerCharacter::StartCommand(FString commandName)
 {
-	if (commandName == "HADOUKEN")
-	{
-		UE_LOG(LogTemp, Warning, TEXT("HADOUKEN!!!"));
-	}
+	UE_LOG(LogTemp, Warning, TEXT("executing command: %s"), *commandName);
 }
 
 float AMeshPlayerCharacter::GetCurrentDistance()

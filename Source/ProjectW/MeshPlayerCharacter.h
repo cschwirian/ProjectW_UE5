@@ -50,6 +50,29 @@ public:
 			return false;
 		}
 	}
+
+	FString toString()
+	{
+		return movementComponent + " " + buttonComponent;
+	}
+
+	FInputTuple(const FInputTuple& other)
+	{
+		movementComponent = other.movementComponent;
+		buttonComponent = other.buttonComponent;
+	}
+
+	FInputTuple()
+	{
+		movementComponent = "ERROR";
+		buttonComponent = "ERROR";
+	}
+
+	FInputTuple(const FString& newMovementComponent, const FString& newButtonComponent)
+	{
+		movementComponent = newMovementComponent;
+		buttonComponent = newButtonComponent;
+	}
 };
 
 USTRUCT(BlueprintType)
@@ -63,6 +86,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	float timeStamp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	bool wasEvaluated;
 };
 
 USTRUCT(BlueprintType)
@@ -75,10 +101,10 @@ public:
 	FString name;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-	TArray<FInputTuple> motionComponent;
+	TArray<FInputTuple> facingLeft;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-	FInputTuple buttonComponent;
+	TArray<FInputTuple> facingRight;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	bool hasBeenUsed;
@@ -147,6 +173,9 @@ class AMeshPlayerCharacter : public ACharacter
 	AMeshPlayerCharacter();
 
 public:
+
+	const int FACING_LEFT = 0;
+	const int FACING_RIGHT = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
 	float health;
